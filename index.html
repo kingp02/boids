@@ -31,10 +31,10 @@
 			SCREEN_HEIGHT = window.innerHeight;
 
 			var numBoids = 100, separation = 100, cohesion = 500, alignment = 100, flockiness = 0.5, repulse = true,pause = false;
-			var camera, scene, renderer, birds, bird, boid, boids, stats, perchTime = 0;
+			var camera, scene, renderer, birds, bird, boid, boids, stats;
 
 			var Boid = function() {
-				var _acceleration, _width = 500, _height = 500, _depth = 400, _maxSpeed = 5, perched = false;
+				var _acceleration, _width = 500, _height = 500, _depth = 400, _maxSpeed = 5;
 
 				this.position = new THREE.Vector3();
 				this.velocity = new THREE.Vector3();
@@ -42,7 +42,6 @@
 
 				// Executes the Boid's actions based on the state of the flock.
 				this.run = function (boids) {
-					if (!pause && !this.canPerch()) {
 						this.checkBorder();
 
 						if (Math.random() > flockiness) {
@@ -52,10 +51,6 @@
 						}
 
 						this.move();
-					}
-					else {
-						this.perched = true;
-					}
 				}
 
 				this.checkBorder = function () {
@@ -102,20 +97,6 @@
 
 					steer.multiplyScalar(1 / this.position.distanceToSquared(target));
 					return steer;
-				}
-
-				// Returns true if the boid is within the flocking area.
-				// If the birds have recntly been released, this will also return true and count down the perch timer.
-				this.canPerch = function () {
-					if (perchTime > 1) {
-						perchTime--;
-						return false;
-					}
-					if (this.position.x > -200 && this.position.x < 100 && 
-						this.position.y > -290 && this.position.y < -260 &&
-						this.position.z > 0 && this.position.z < 30)
-						return true;
-					return false;
 				}
 
 				// Calculate the velocity from the previously calculated acceleration and update the position.
@@ -251,7 +232,6 @@
 				}
 
 				document.addEventListener('mousemove', onDocumentMouseMove, false);
-				document.addEventListener('mousedown', onDocumentMouseDown, false);
 				document.body.appendChild(renderer.domElement);
 
 				stats = new Stats();
@@ -366,14 +346,6 @@
 				}
 			}
 
-			// When the mouse is clicked turn of perching for a short period of time.
-			function onDocumentMouseDown(event) {
-				var vector = new THREE.Vector3(event.clientX - SCREEN_WIDTH / 2,
-					-event.clientY + SCREEN_HEIGHT / 2, 0);
-
-				perchTime = 10000;
-			}
-
 			// Render loop. Include updates to FPS stats thing.
 			function animate() {
 				requestAnimationFrame(animate);
@@ -385,7 +357,6 @@
 			// Render the scene by going through all the boids and calculating their new position via run.
 			// Each boid is colored based on its depth: color is lighter if the boid is far from the camera.
 			// The boid must also be rotated so that it is pointing in the direction of its velocit.
-			// Finally the flapping animation must be applied only to non-perched boids.
 			function render() {
 				for (var i = 0; i < birds.length; i++) {
 					boid = boids[i];
@@ -402,13 +373,8 @@
 					bird.rotation.z = Math.asin(boid.velocity.y / boid.velocity.length());
 
 					// Add boid flapping animation
-					if (!boid.perched) {
 						bird.phase = (bird.phase + (Math.max(0, bird.rotation.z) + 0.1)) % 62.83;
 						bird.geometry.vertices[5].y = bird.geometry.vertices[4].y = Math.sin(bird.phase) * 5;
-					}
-					else {
-						bird.geometry.vertices[5].y = bird.geometry.vertices[4].y = Math.sin(Math.PI) * 5;
-					}
 				}
 
 				renderer.render(scene, camera);
